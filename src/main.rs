@@ -53,7 +53,7 @@ async fn axum(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_axum::Shut
     let router = Router::new()
         .route("/todos", post(add))
         .route("/todos/:id", get(retrieve))
-        .route("gets/:id", get(retrieve))
+        .route("/gets/:id", get(retrieve))
         .with_state(state);
 
     Ok(router.into())
