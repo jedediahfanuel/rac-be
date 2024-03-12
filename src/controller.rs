@@ -8,7 +8,7 @@ use axum::{
 use sqlx::{PgPool, Pool};
 use base64;
 
-use crate::model::{Registrant, RegistrantFormData, Response};
+use crate::model::*;
 
 pub fn registrant_router() -> Router<Pool<sqlx::Postgres>> {
     let router = Router::new()
@@ -26,16 +26,16 @@ async fn get_all_registrants(
         .await
     {
         Ok(registrants) => {
-            let registrants_base64 = registrants.into_iter().map(|registrant| {
-                let photo_base64 = base64::encode(&registrant.photo);
-                Registrant {
-                    id: registrant.id,
-                    name: registrant.name,
-                    phone: registrant.phone,
-                    message: registrant.message,
-                    photo: Into::into(photo_base64),
+            let registrants_base64 = registrants.into_iter().map(|reg| {
+                let photo_base64 = base64::encode(&reg.photo);
+                RegistrantString {
+                    id: reg.id,
+                    name: reg.name,
+                    phone: reg.phone,
+                    message: reg.message,
+                    photo: photo_base64,
                 }
-            }).collect::<Vec<Registrant>>();
+            }).collect::<Vec<RegistrantString>>();
             Ok((StatusCode::OK, Json(registrants_base64)))
         },
         Err(e) => Err((StatusCode::BAD_REQUEST, e.to_string())),
