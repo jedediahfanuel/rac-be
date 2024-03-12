@@ -8,7 +8,7 @@ use axum::{
 use sqlx::{PgPool, Pool};
 use base64;
 
-use crate::model::{Registrant, RegistrantFormData};
+use crate::model::{Registrant, RegistrantFormData, Response};
 
 pub fn registrant_router() -> Router<Pool<sqlx::Postgres>> {
     let router = Router::new()
@@ -61,7 +61,7 @@ async fn add_registrant(
         }
     }
 
-    match sqlx::query_as::<_, Registrant>(
+    match sqlx::query_as::<_, Response>(
         "INSERT INTO registrant (name, phone, message, photo) VALUES ($1, $2, $3, $4) RETURNING id, name, phone, message",
     )
     .bind(&data.name)

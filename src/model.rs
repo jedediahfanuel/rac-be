@@ -17,3 +17,11 @@ pub struct Registrant {
     pub message: String,
     pub photo: Vec<u8>
 }
+
+#[derive(Serialize, FromRow)]
+pub struct Response {
+    pub id: i32,
+    pub name: String,
+    pub phone: String,
+    pub message: String
+}
