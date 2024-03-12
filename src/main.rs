@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Form, Path, State},
+    extract::{Multipart, State},
     http::StatusCode,
     response::IntoResponse,
     routing::{get, post},
@@ -8,34 +8,6 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use shuttle_runtime::CustomError;
 use sqlx::{FromRow, PgPool};
-
-async fn retrieve(
-    Path(id): Path<i32>,
-    State(state): State<MyState>,
-) -> Result<impl IntoResponse, impl IntoResponse> {
-    match sqlx::query_as::<_, Todo>("SELECT * FROM todos WHERE id = $1")
-        .bind(id)
-        .fetch_one(&state.pool)
-        .await
-    {
-        Ok(todo) => Ok((StatusCode::OK, Json(todo))),
-        Err(e) => Err((StatusCode::BAD_REQUEST, e.to_string())),
-    }
-}
-
-async fn add(
-    State(state): State<MyState>,
-    Json(data): Json<TodoNew>,
-) -> Result<impl IntoResponse, impl IntoResponse> {
-    match sqlx::query_as::<_, Todo>("INSERT INTO todos (note) VALUES ($1) RETURNING id, note")
-        .bind(&data.note)
-        .fetch_one(&state.pool)
-        .await
-    {
-        Ok(todo) => Ok((StatusCode::CREATED, Json(todo))),
-        Err(e) => Err((StatusCode::BAD_REQUEST, e.to_string())),
-    }
-}
 
 async fn get_all_registrants(
     State(state): State<MyState>,
@@ -51,8 +23,23 @@ async fn get_all_registrants(
 
 async fn add_registrant(
     State(state): State<MyState>,
-    Form(data): Form<RegistrantFormData>, // Changed to accept Form data
+    mut multipart: Multipart,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
+    let mut data = RegistrantFormData::default();
+
+    while let Some(field) = multipart.next_field().await.unwrap() {
+        let name = field.name().unwrap();
+        match name {
+            "name" => data.name = field.text().await.unwrap(),
+            "phone" => data.phone = field.text().await.unwrap(),
+            "message" => data.message = field.text().await.unwrap(),
+            "photo" => {
+                data.photo = field.bytes().await.unwrap().to_vec();
+            }
+            _ => {}
+        }
+    }
+
     match sqlx::query_as::<_, Registrant>(
         "INSERT INTO registrant (name, phone, message, photo) VALUES ($1, $2, $3, $4) RETURNING id, name, phone, message",
     )
@@ -63,7 +50,7 @@ async fn add_registrant(
     .fetch_one(&state.pool)
     .await
     {
-        Ok(registrant) => Ok((StatusCode::CREATED, Json(registrant))),
+        Ok(row) => Ok((StatusCode::CREATED, Json(row))),
         Err(e) => Err((StatusCode::BAD_REQUEST, e.to_string())),
     }
 }
@@ -82,21 +69,19 @@ async fn axum(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_axum::Shut
 
     let state = MyState { pool };
     let router = Router::new()
-        .route("/todos", post(add))
-        .route("/todos/:id", get(retrieve))
-        .route("/registrants", post(add_registrant)) // New route for adding registrants
-        .route("/registrants", get(get_all_registrants)) // New route for getting all registrants
+        .route("/registrants", post(add_registrant))
+        .route("/registrants", get(get_all_registrants))
         .with_state(state);
 
     Ok(router.into())
 }
 
-#[derive(Deserialize)] // Changed to match form data
+#[derive(Default, Deserialize)]
 struct RegistrantFormData {
     pub name: String,
     pub phone: String,
     pub message: String,
-    pub photo: Vec<u8>, // Assuming the photo is provided as a byte array
+    pub photo: Vec<u8>,
 }
 
 #[derive(Serialize, FromRow)]
@@ -105,15 +90,4 @@ struct Registrant {
     pub name: String,
     pub phone: String,
     pub message: String,
-}
-
-#[derive(Deserialize)]
-struct TodoNew {
-    pub note: String,
-}
-
-#[derive(Serialize, FromRow)]
-struct Todo {
-    pub id: i32,
-    pub note: String,
 }
