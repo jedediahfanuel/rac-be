@@ -21,7 +21,7 @@ pub fn registrant_router() -> Router<Pool<sqlx::Postgres>> {
 async fn get_all_registrants(
     State(pool): State<PgPool>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
-    match sqlx::query_as::<_, Registrant>("SELECT id, name, phone, message FROM registrant")
+    match sqlx::query_as::<_, Registrant>("SELECT id, name, phone, message, photo FROM registrant")
         .fetch_all(&pool)
         .await
     {
