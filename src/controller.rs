@@ -11,8 +11,8 @@ use crate::model::{Registrant, RegistrantFormData};
 
 pub fn registrant_router() -> Router<Pool<sqlx::Postgres>> {
     let router = Router::new()
-        .route("", post(add_registrant))
-        .route("", get(get_all_registrants));
+        .route("/", post(add_registrant))
+        .route("/", get(get_all_registrants));
 
     router
 }
