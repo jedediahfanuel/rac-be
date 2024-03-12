@@ -6,6 +6,7 @@ use axum::{
     Json, Router,
 };
 use sqlx::{PgPool, Pool};
+use base64;
 
 use crate::model::{Registrant, RegistrantFormData};
 
@@ -24,7 +25,19 @@ async fn get_all_registrants(
         .fetch_all(&pool)
         .await
     {
-        Ok(registrants) => Ok((StatusCode::OK, Json(registrants))),
+        Ok(registrants) => {
+            let registrants_base64 = registrants.into_iter().map(|registrant| {
+                let photo_base64 = base64::encode(&registrant.photo);
+                Registrant {
+                    id: registrant.id,
+                    name: registrant.name,
+                    phone: registrant.phone,
+                    message: registrant.message,
+                    photo: photo_base64,
+                }
+            }).collect::<Vec<Registrant>>();
+            Ok((StatusCode::OK, Json(registrants_base64)))
+        },
         Err(e) => Err((StatusCode::BAD_REQUEST, e.to_string())),
     }
 }

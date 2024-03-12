@@ -15,4 +15,5 @@ pub struct Registrant {
     pub name: String,
     pub phone: String,
     pub message: String,
+    pub photo: String
 }
