@@ -33,7 +33,7 @@ async fn get_all_registrants(
                     name: registrant.name,
                     phone: registrant.phone,
                     message: registrant.message,
-                    photo: photo_base64,
+                    photo: Into::into(photo_base64),
                 }
             }).collect::<Vec<Registrant>>();
             Ok((StatusCode::OK, Json(registrants_base64)))
