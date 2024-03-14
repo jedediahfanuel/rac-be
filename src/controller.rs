@@ -28,14 +28,14 @@ async fn get_all_registrants(
         Ok(registrants) => {
             let registrants_base64 = registrants.into_iter().map(|reg| {
                 let photo_base64 = base64::encode(&reg.photo);
-                RegistrantString {
+                RegistrantDTO {
                     id: reg.id,
                     name: reg.name,
                     phone: reg.phone,
                     message: reg.message,
                     photo: photo_base64,
                 }
-            }).collect::<Vec<RegistrantString>>();
+            }).collect::<Vec<RegistrantDTO>>();
             Ok((StatusCode::OK, Json(registrants_base64)))
         },
         Err(e) => Err((StatusCode::BAD_REQUEST, e.to_string())),
@@ -55,7 +55,7 @@ async fn add_registrant(
             "phone" => data.phone = field.text().await.unwrap(),
             "message" => data.message = field.text().await.unwrap(),
             "photo" => {
-                data.photo = field.bytes().await.unwrap().to_vec();
+                data.photo = "s".to_owned() //field.bytes().await.unwrap().to_vec();
             }
             _ => {}
         }

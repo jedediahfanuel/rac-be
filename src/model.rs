@@ -6,7 +6,7 @@ pub struct RegistrantFormData {
     pub name: String,
     pub phone: String,
     pub message: String,
-    pub photo: Vec<u8>,
+    pub photo: String,
 }
 
 #[derive(Serialize, FromRow)]
@@ -15,11 +15,11 @@ pub struct Registrant {
     pub name: String,
     pub phone: String,
     pub message: String,
-    pub photo: Vec<u8>
+    pub photo: String
 }
 
 #[derive(Serialize, FromRow)]
-pub struct RegistrantString {
+pub struct RegistrantDTO {
     pub id: i32,
     pub name: String,
     pub phone: String,
