@@ -6,6 +6,7 @@ use axum::{
     Json, Router,
 };
 use sqlx::{PgPool, Pool};
+// use reqwest::Client;
 
 use crate::model::*;
 
