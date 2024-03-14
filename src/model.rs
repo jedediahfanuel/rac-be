@@ -1,4 +1,3 @@
-use axum::body::Bytes;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool};
 
@@ -7,7 +6,7 @@ pub struct RegistrantDTO {
     pub name: String,
     pub phone: String,
     pub message: String,
-    pub photo: Bytes,
+    pub photo: Vec<u8>,
 }
 
 #[derive(Serialize, FromRow)]
@@ -17,23 +16,6 @@ pub struct Registrant {
     pub phone: String,
     pub message: String,
     pub photo: String,
-}
-
-#[derive(Serialize, FromRow)]
-pub struct RegistrantResponse {
-    pub id: i32,
-    pub name: String,
-    pub phone: String,
-    pub message: String,
-    pub photo: String,
-}
-
-#[derive(Serialize, FromRow)]
-pub struct Response {
-    pub id: i32,
-    pub name: String,
-    pub phone: String,
-    pub message: String,
 }
 
 #[derive(Deserialize)]

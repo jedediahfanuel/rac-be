@@ -25,19 +25,7 @@ async fn get_all_registrants(
         .fetch_all(&stx.pool)
         .await
     {
-        Ok(registrants) => {
-            let row = registrants
-                .into_iter()
-                .map(|reg| RegistrantResponse {
-                    id: reg.id,
-                    name: reg.name,
-                    phone: reg.phone,
-                    message: reg.message,
-                    photo: reg.photo,
-                })
-                .collect::<Vec<RegistrantResponse>>();
-            Ok((StatusCode::OK, Json(row)))
-        }
+        Ok(registrants) => Ok((StatusCode::OK, Json(registrants))),
         Err(e) => Err((StatusCode::BAD_REQUEST, e.to_string())),
     }
 }
@@ -54,36 +42,36 @@ async fn add_registrant(
             "name" => data.name = field.text().await.unwrap(),
             "phone" => data.phone = field.text().await.unwrap(),
             "message" => data.message = field.text().await.unwrap(),
-            "photo" => data.photo = field.bytes().await.unwrap(),
+            "photo" => data.photo = field.bytes().await.unwrap().to_vec(),
             _ => {}
         }
     }
 
     let client = reqwest::Client::new();
-    let mut form_data = Form::new();
-
-    form_data = form_data.text("title", format!("{}", data.name));
-    form_data = form_data.text(
-        "description",
-        format!("{} --- {}", data.phone, data.message),
-    );
-    form_data = form_data.part(
-        "image",
-        reqwest::multipart::Part::bytes(data.photo.to_vec()),
-    );
+    let form_data = Form::new()
+        .text("title", format!("{}", data.name))
+        .text(
+            "description",
+            format!("{} --- {}", data.phone, data.message),
+        )
+        .part(
+            "image",
+            reqwest::multipart::Part::bytes(data.photo),
+        );
 
     let imgur_response = client
         .post("https://api.imgur.com/3/image")
-        .header("Authorization", format!("Bearer {}", stx.token.clone()))
+        .header("Authorization", format!("Bearer {}", &stx.token))
         .multipart(form_data)
         .send()
         .await
-        .unwrap()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .text()
         .await
-        .unwrap();
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let imgur: ImgurResponse = serde_json::from_str(&imgur_response).unwrap();
+    let imgur: ImgurResponse = serde_json::from_str(&imgur_response)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     if !imgur.success {
         return Err((
@@ -92,8 +80,8 @@ async fn add_registrant(
         ));
     }
 
-    match sqlx::query_as::<_, Response>(
-        "INSERT INTO registrant (name, phone, message, photo) VALUES ($1, $2, $3, $4) RETURNING id, name, phone, message",
+    let row = sqlx::query_as::<_, Registrant>(
+        "INSERT INTO registrant (name, phone, message, photo) VALUES ($1, $2, $3, $4) RETURNING id, name, phone, message, photo",
     )
     .bind(&data.name)
     .bind(&data.phone)
@@ -101,8 +89,7 @@ async fn add_registrant(
     .bind(&imgur.data.link)
     .fetch_one(&stx.pool)
     .await
-    {
-        Ok(row) => Ok((StatusCode::CREATED, Json(row))),
-        Err(e) => Err((StatusCode::BAD_REQUEST, e.to_string())),
-    }
+    .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+
+    Ok((StatusCode::CREATED, Json(row)))
 }
