@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 axum = { version = "0.7.3", features = ["multipart"] }
-base64 = "0.22.0"
 serde = { version = "1.0.188", features = ["derive"] }
 shuttle-axum = "0.41.0"
 shuttle-runtime = "0.41.0"
